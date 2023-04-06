@@ -1,0 +1,16 @@
+FROM golang:1.19-alpine
+
+WORKDIR /go/work
+
+COPY go.* ./
+RUN go mod download
+
+COPY cache/*.go ./cache/
+COPY model/*.go ./model/
+COPY cmd/testV1/*.go ./
+
+RUN go build -o ./testv1
+
+EXPOSE 9002
+
+ENTRYPOINT [ "./testv1" ]
