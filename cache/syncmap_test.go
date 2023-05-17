@@ -47,3 +47,38 @@ func syncput(w *sync.WaitGroup, cache Cache, key string, val []byte) {
 	defer w.Done()
 	cache.Put(key, val)
 }
+
+var globalKey string
+
+func BenchmarkMake(b *testing.B) {
+	b.Run("buffer", benchmarkMakeKey)
+	b.Run("string", benchmarkMakeKeyStr)
+}
+
+func benchmarkMakeKey(b *testing.B) {
+	var key string
+	for i := 0; i < b.N; i++ {
+		key = MakeKey("us", "foo1234")
+	}
+	globalKey = key
+}
+
+func benchmarkMakeKeyStr(b *testing.B) {
+	var key string
+	for i := 0; i < b.N; i++ {
+		key = MakeKeyStr("us", "foo1234")
+	}
+	globalKey = key
+}
+
+// $ go test -run none -bench . -benchtime 3s -benchmem
+// goos: linux
+// goarch: amd64
+// pkg: backendify/cache
+// cpu: Intel(R) Core(TM) i7-7500U CPU @ 2.70GHz
+// BenchmarkMakeKey-4               8084622               407.1 ns/op            80 B/op          4 allocs/op
+// BenchmarkMakeKeyStr-4           17240190               191.5 ns/op            48 B/op          3 allocs/op
+// PASS
+// ok      backendify/cache        9.172s
+
+// go test -run none -bench BenchmarkMake/buffer -benchtime 3s -benchmem

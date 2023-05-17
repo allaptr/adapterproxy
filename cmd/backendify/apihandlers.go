@@ -21,12 +21,13 @@ const (
 	v1 = "application/x-company-v1"
 	v2 = "application/x-company-v2"
 )
+
 var (
-	countryError = []byte("{\"error\":\"country not found\"}")
-	companyError = []byte("{\"error\":\"company not found\"}")
-	paramError = []byte("{\"error\":\"missing request parameters\"}")
-	backendError = []byte("{\"error\":\"calling backend error\"}")
-	timeoutError = []byte("{\"error\":\"time out waiting for response from backend\"}")
+	countryError  = []byte("{\"error\":\"country not found\"}")
+	companyError  = []byte("{\"error\":\"company not found\"}")
+	paramError    = []byte("{\"error\":\"missing request parameters\"}")
+	backendError  = []byte("{\"error\":\"calling backend error\"}")
+	timeoutError  = []byte("{\"error\":\"time out waiting for response from backend\"}")
 	catchallError = []byte("{\"error\":\"temporary unknown server error\"}")
 )
 
@@ -45,15 +46,15 @@ type apiHandler struct {
 	// Caches responses by the key created from country_iso and company id
 	// Ex.: us-605601630650G
 	cache cache.Cache
-	b backendCaller
+	b     backendCaller
 	// StatsD metrics client
 	metricClient statsd.Statter
 }
 
 func newApiHandler(m map[string]string, r cache.Cache, statsdClient statsd.Statter, timeout time.Duration) *apiHandler {
 	return &apiHandler{
-		routs:        m,
-		cache:        r,
+		routs: m,
+		cache: r,
 		b: &backender{
 			timeout: timeout,
 		},
@@ -62,6 +63,7 @@ func newApiHandler(m map[string]string, r cache.Cache, statsdClient statsd.Statt
 }
 
 func (a *apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	begin := time.Now().UTC().UnixMilli()
 	a.collectMetric(2)
 
 	if r.Method != http.MethodGet {
@@ -88,9 +90,10 @@ func (a *apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		a.writeResponse(w, http.StatusNotFound, countryError)
 		return
 	}
+	callBegin := time.Now().UTC().UnixMilli()
 	resp, err := a.b.callBackend(route, id)
 	if err != nil && resp == nil {
-			if errors.Is(err, context.DeadlineExceeded) {
+		if errors.Is(err, context.DeadlineExceeded) {
 			a.collectMetric(4)
 			a.writeResponse(w, http.StatusGatewayTimeout, timeoutError)
 			return
@@ -108,7 +111,8 @@ func (a *apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		a.writeResponse(w, http.StatusGatewayTimeout, backendError)
 		return
 	}
-
+	callEnd := time.Now().UTC().UnixMilli()
+	log.Debugf("Backend Call: %d", callEnd-callBegin)
 	body, err := io.ReadAll(resp.Body)
 	defer resp.Body.Close()
 	if err != nil {
@@ -138,9 +142,11 @@ func (a *apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	a.writeResponse(w, http.StatusOK, b)
 	a.cacheResponse(country, id, b)
+	end := time.Now().UTC().UnixMilli()
+	log.Debugf("Total Request Processing Time: %d", end-begin)
 }
 
-func (a *apiHandler) writeResponse(w http.ResponseWriter , statusCode int, msgJson []byte) {
+func (a *apiHandler) writeResponse(w http.ResponseWriter, statusCode int, msgJson []byte) {
 	w.WriteHeader(statusCode)
 	ret, err := w.Write(msgJson)
 	if err != nil || ret == 0 {
@@ -154,10 +160,10 @@ func (b *backender) callBackend(route, id string) (*http.Response, error) {
 	ctx, cancel := context.WithTimeout(ctx, b.timeout)
 	defer cancel()
 	reqStr := requestString(route, id)
-	log.Debugf("Sending GET request %s ",reqStr )
+	log.Debugf("Sending GET request %s ", reqStr)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqStr, nil)
 	if err != nil {
-		log.Debugf("Error calling backend with ctx %v ",err )
+		log.Debugf("Error calling backend with ctx %v ", err)
 		return nil, err
 	}
 	client := &http.Client{}
@@ -174,7 +180,7 @@ func (a *apiHandler) collectMetric(value int64) {
 	}
 }
 
-func  (a *apiHandler) cacheResponse(country, id string, data []byte) {
+func (a *apiHandler) cacheResponse(country, id string, data []byte) {
 	key := cache.MakeKey(country, id)
 	a.cache.Put(key, data)
 }
@@ -231,7 +237,7 @@ func processV2Response(resp []byte) (string, bool, string) {
 	}
 	closedTime, _ := time.Parse(time.RFC3339, d.Dissolved_on)
 	pastClosed := time.Now().UTC().After(closedTime)
-	return d.Company_name,!pastClosed, d.Dissolved_on
+	return d.Company_name, !pastClosed, d.Dissolved_on
 }
 
 // Returns comp name, isActive, active_until (RFC3339)

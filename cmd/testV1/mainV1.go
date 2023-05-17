@@ -13,7 +13,7 @@ var txtData = map[string]string{
 	"621451430762X": "{\"cn\":\"ACME Incorporated\",\"created_on\":\"2314-12-23T01:29:13Z\",\"closed_on\":null}",
 	"282676033074S": "{\"cn\":\"laughing-lamarr-dirac\",\"created_on\":\"2022-03-24T01:54:39Z\",\"closed_on\":null}",
 	"440804282323A": "{\"cn\":\"elastic-aryabhata-kare\",\"created_on\":\"1955-04-10T01:54:39Z\",\"closed_on\":null}",
-	"testv1": "{\"cn\":\"friendly-euler-ptolemy\",\"created_on\":\"1977-04-04T01:54:39Z\",\"closed_on\":null}",
+	"testv1":        "{\"cn\":\"friendly-euler-ptolemy\",\"created_on\":\"1977-04-04T01:54:39Z\",\"closed_on\":null}",
 	"4164142148556": "{\"cn\":\"flamboyant-burnell-colden\",\"created_on\":\"1745-05-30T01:54:39Z\",\"closed_on\":null}",
 	"155674243726O": "{\"cn\":\"stoic-edison-feynman\",\"created_on\":\"1786-05-20T01:54:39Z\",\"closed_on\":null}",
 	"462059571630Q": "{\"cn\":\"agitated-bell-easley\",\"created_on\":\"2006-03-28T01:54:39Z\",\"closed_on\":null}",
@@ -97,11 +97,13 @@ func init() {
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.DebugLevel)
 }
+
 // us
 func main() {
 	rtr := mux.NewRouter()
 	rtr.HandleFunc("/companies/{id}", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
+			log.Debugf("Have method %s", r.Method)
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
@@ -115,7 +117,7 @@ func main() {
 		}
 		w.Header().Set("Content-Type", "application/x-company-v1")
 		w.WriteHeader(http.StatusOK)
-		txt, err := w.Write([]byte(txtData[id]+"\n"))
+		txt, err := w.Write([]byte(txtData[id] + "\n"))
 		if err != nil {
 			log.Debugf("Error writing Response %v ", err)
 			return

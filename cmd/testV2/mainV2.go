@@ -14,7 +14,7 @@ import (
 
 var txtData = map[string]string{
 	"621451430762XA": "{\"company_name\":\"ACME Incorporated\",\"tin\":\"2314-12-23T01:29:13Z\",\"dissolved_on\":\"2322-03-24T01:54:39Z\"}",
-	"testv2": "{\"company_name\":\"laughing-lamarr-dirac\",\"tin\":\"2022-03-24T01:54:39Z\",\"dissolved_on\":null}",
+	"testv2":         "{\"company_name\":\"laughing-lamarr-dirac\",\"tin\":\"2022-03-24T01:54:39Z\",\"dissolved_on\":null}",
 	"440804282323AC": "{\"company_name\":\"elastic-aryabhata-kare\",\"tin\":\"1955-04-10T01:54:39Z\",\"dissolved_on\":\"2022-03-24T01:54:39Z\"}",
 	"117441277681BD": "{\"company_name\":\"friendly-euler-ptolemy\",\"tin\":\"1977-04-04T01:54:39Z\",\"dissolved_on\":null}",
 	"4164142148556E": "{\"company_name\":\"flamboyant-burnell-colden\",\"tin\":\"1745-05-30T01:54:39Z\",\"dissolved_on\":null}",
@@ -100,6 +100,7 @@ func init() {
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.DebugLevel)
 }
+
 // ru
 func main() {
 	upper := flag.Duration("delay", 250, "Upper limit of random delay in milliseconds")
@@ -119,14 +120,14 @@ func main() {
 		}
 		// add random delay
 		upperlimit := int(*upper)
-		log.Debugf("upperlimit %v", upperlimit)
 		delay := rand.Intn(upperlimit)
+		log.Debugf("upperlimit %d - actual delay %d", upperlimit, delay)
 		time.Sleep(time.Duration(delay) * time.Millisecond)
 		log.Debugf("Delay %v", delay)
 
 		w.Header().Set("Content-Type", "application/x-company-v2")
 		w.WriteHeader(http.StatusOK)
-		txt, err := w.Write([]byte(txtData[id]+"\n"))
+		txt, err := w.Write([]byte(txtData[id] + "\n"))
 		if err != nil {
 			log.Debugf("Error writing Response %v ", err)
 			return

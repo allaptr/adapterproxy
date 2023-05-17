@@ -43,3 +43,8 @@ func MakeKey(country, id string) string {
 	fmt.Fprintf(&b, "%s-%s", country, id)
 	return b.String()
 }
+
+func MakeKeyStr(country, id string) string {
+	s := fmt.Sprintf("%s-%s", country, id)
+	return s
+}

@@ -20,11 +20,11 @@ import (
 
 func Test_apiHandler(t *testing.T) {
 	tds := []struct {
-		name           string
+		name          string
 		requestMethod string
-		requestString          string
-		responseCode	int
-		responseBody	[]byte
+		requestString string
+		responseCode  int
+		responseBody  []byte
 	}{
 		{"Unsupported http method", http.MethodPut, "/company?id=abc&country_iso=us", http.StatusMethodNotAllowed, []byte{}},
 		{"Company id missing", http.MethodGet, "/company?country_iso=us", http.StatusBadRequest, paramError},
@@ -42,10 +42,10 @@ func Test_apiHandler(t *testing.T) {
 
 			req := httptest.NewRequest(td.requestMethod, td.requestString, nil)
 			w := httptest.NewRecorder()
-			m := map[string]string{"us":"http://localhost:9002"}
+			m := map[string]string{"us": "http://localhost:9002"}
 			c := cache.NewCache()
 
-			ah := newApiHandler(m, c, mclient, 200 * time.Millisecond)
+			ah := newApiHandler(m, c, mclient, 200*time.Millisecond)
 			ah.ServeHTTP(w, req)
 			res := w.Result()
 			defer res.Body.Close()
@@ -60,20 +60,21 @@ func Test_apiHandler(t *testing.T) {
 func Test_serveCached(t *testing.T) {
 	cacheVal := []byte("{\"cn\":\"elastic-aryabhata-kare\",\"created_on\":\"1955-04-10T01:54:39Z\",\"closed_on\":null}")
 	tds := []struct {
-		name           string
-		country	string
-		companyID string
-		success	bool
-		responseBody	[]byte
+		name         string
+		country      string
+		companyID    string
+		success      bool
+		responseBody []byte
 	}{
-		{"Cache miss", "us", "123", false,  []byte{}},
+		{"Cache miss", "us", "123", false, []byte{}},
 		{"Cache hit", "us", "440804282323A", true, cacheVal},
 	}
 	c := cache.NewCache()
 	c.Put(cache.MakeKey("us", "440804282323A"), cacheVal)
 
 	for _, td := range tds {
-		t.Run(td.name, func(t *testing.T) {
+		tf := func(t *testing.T) {
+			t.Parallel()
 			config := &statsd.ClientConfig{
 				Address: "127.0.0.1:8125",
 			}
@@ -81,9 +82,9 @@ func Test_serveCached(t *testing.T) {
 			assert.NoError(t, err)
 
 			w := httptest.NewRecorder()
-			m := map[string]string{"us":"http://localhost:9002"}
+			m := map[string]string{"us": "http://localhost:9002"}
 
-			ah := newApiHandler(m, c, mclient, 200 * time.Millisecond)
+			ah := newApiHandler(m, c, mclient, 200*time.Millisecond)
 			success := ah.serveCached(w, td.country, td.companyID)
 			assert.Equal(t, td.success, success)
 			res := w.Result()
@@ -92,27 +93,28 @@ func Test_serveCached(t *testing.T) {
 			assert.NoError(t, err)
 
 			assert.Equal(t, td.responseBody, data)
-		})
+		}
+		t.Run(td.name, tf)
 	}
 }
 
-func Test_callBackend (t *testing.T) {
-	expected:= "{\"cn\":\"mystifying-proskuriakova-mcclintock\",\"created_on\":\"1759-05-27T01:54:39Z\",\"closed_on\":null}"
+func Test_callBackend(t *testing.T) {
+	expected := "{\"cn\":\"mystifying-proskuriakova-mcclintock\",\"created_on\":\"1759-05-27T01:54:39Z\",\"closed_on\":null}"
 	tds := []struct {
-		name           string
-		delay	time.Duration
-		err error
-		responseBody	[]byte
+		name         string
+		delay        time.Duration
+		err          error
+		responseBody []byte
 	}{
 		{"Happy path", 25 * time.Millisecond, nil, []byte(expected)},
 		{"Timeout", 250 * time.Millisecond, context.DeadlineExceeded, nil},
 	}
 	be := backender{
-		timeout: 200*time.Millisecond,
+		timeout: 200 * time.Millisecond,
 	}
 	for _, td := range tds {
-			t.Run(td.name, func(t *testing.T) {
-				svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Run(td.name, func(t *testing.T) {
+			svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				time.Sleep(td.delay)
 				w.WriteHeader(http.StatusOK)
 				ret, err := w.Write([]byte(expected))
@@ -191,7 +193,18 @@ func Test_processV1RealData(t *testing.T) {
 	}
 }
 
-func Test_requestString (t *testing.T) {
+func Test_requestString(t *testing.T) {
 	str := requestString("http://localhost:9002", "170456685224Z")
 	assert.Equal(t, "http://localhost:9002/companies/170456685224Z", str)
+}
+
+func TestGo(t *testing.T) {
+	var π = 22 / 7.0
+	fmt.Println(π)
+
+	var m map[string]int
+	fmt.Println(m["Hello"])
+
+	s := "a\tb"
+	fmt.Println(s)
 }

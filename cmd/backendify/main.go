@@ -57,7 +57,7 @@ func main() {
 	})
 
 	log.Infof("Starting the adapter-proxy server on port %d ... \n", *port)
-	listenAddress := fmt.Sprintf("172.17.250.96:%d", *port)
+	listenAddress := fmt.Sprintf(":%d", *port)
 	log.Fatal(http.ListenAndServe(listenAddress, mux))
 }
 
